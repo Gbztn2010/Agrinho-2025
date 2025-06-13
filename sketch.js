@@ -1,0 +1,143 @@
+let campo = [];
+let cidade = [];
+let conectando = false;
+let conexaoAtual = { inicio: null, fim: null };
+let conexoes = [];
+let pontuacao = 0;
+let tempoJogo = 120; // segundos
+let tempoRestante;
+
+function setup() {
+  createCanvas(800, 600);
+  frameRate(30);
+
+  // Fontes do campo (à esquerda)
+  campo.push({ x: 100, y: 150, tipo: 'agua', cor: color(30, 144, 255) });
+  campo.push({ x: 100, y: 300, tipo: 'alimento', cor: color(34, 139, 34) });
+  campo.push({ x: 100, y: 450, tipo: 'energia', cor: color(255, 215, 0) });
+
+  // Consumidores da cidade (à direita)
+  cidade.push({ x: 700, y: 150, tipo: 'casa', cor: color(139, 69, 19), conectado: false });
+  cidade.push({ x: 700, y: 300, tipo: 'hospital', cor: color(255, 0, 0), conectado: false });
+  cidade.push({ x: 700, y: 450, tipo: 'escola', cor: color(0, 0, 255), conectado: false });
+
+  tempoRestante = tempoJogo * 30; // em frames
+}
+
+function draw() {
+  background(240);
+
+  // Tempo restante
+  tempoRestante--;
+  if (tempoRestante <= 0) {
+    gameOver();
+  }
+
+  // Fundo
+  fill(34, 139, 34);
+  rect(0, 0, width / 2, height);
+  fill(128, 128, 128);
+  rect(width / 2, 0, width / 2, height);
+
+  // Desenhar elementos do campo
+  for (let f of campo) {
+    fill(f.cor);
+    ellipse(f.x, f.y, 50);
+    fill(0);
+    textAlign(CENTER, CENTER);
+    text(f.tipo, f.x, f.y);
+  }
+
+  // Desenhar elementos da cidade
+  for (let c of cidade) {
+    fill(c.conectado ? color(0, 200, 0) : c.cor);
+    rect(c.x - 25, c.y - 25, 50, 50);
+    fill(255);
+    textAlign(CENTER, CENTER);
+    text(c.tipo, c.x, c.y);
+  }
+
+  // Desenhar conexões existentes
+  stroke(0);
+  for (let c of conexoes) {
+    line(c.inicio.x, c.inicio.y, c.fim.x, c.fim.y);
+  }
+
+  // Conexão temporária durante arraste
+  if (conectando && conexaoAtual.inicio !== null) {
+    stroke(200, 0, 0);
+    line(conexaoAtual.inicio.x, conexaoAtual.inicio.y, mouseX, mouseY);
+  }
+
+  // Interface
+  fill(0);
+  textSize(16);
+  text("Pontuação: " + pontuacao, 20, 20);
+  text("Tempo: " + floor(tempoRestante / 30), 20, 40);
+
+  // Feedback visual da cidade
+  let totalConectados = cidade.filter(c => c.conectado).length;
+  if (totalConectados === 3) {
+    fill(0, 200, 0, 150);
+    rect(0, 0, width, height);
+    fill(255);
+    textAlign(CENTER, CENTER);
+    textSize(32);
+    text("Cidade abastecida!", width / 2, height / 2);
+  }
+}
+
+function mousePressed() {
+  // Verifica se clicou em algum elemento do campo
+  for (let f of campo) {
+    if (dist(mouseX, mouseY, f.x, f.y) < 25) {
+      conectando = true;
+      conexaoAtual = { inicio: f, fim: null };
+      return;
+    }
+  }
+
+  // Verifica se clicou em algum consumidor da cidade
+  for (let c of cidade) {
+    if (
+      mouseX > c.x - 25 &&
+      mouseX < c.x + 25 &&
+      mouseY > c.y - 25 &&
+      mouseY < c.y + 25
+    ) {
+      if (conexaoAtual.inicio !== null) {
+        conexaoAtual.fim = c;
+        conectar(conexaoAtual);
+        conexaoAtual = { inicio: null, fim: null };
+        conectando = false;
+      }
+    }
+  }
+}
+
+function conectar(conexao) {
+  let fonte = conexao.inicio.tipo;
+  let destino = conexao.fim.tipo;
+
+  // Regras de conexão
+  if ((fonte === 'agua' && destino === 'casa') ||
+      (fonte === 'alimento' && destino === 'casa') ||
+      (fonte === 'energia' && destino === 'hospital') ||
+      (fonte === 'energia' && destino === 'escola')) {
+    conexoes.push(conexao);
+    conexao.fim.conectado = true;
+    pontuacao += 10;
+  } else {
+    pontuacao -= 5;
+  }
+}
+
+// ===== FUNÇÃO CORRIGIDA ABAIXO =====
+function gameOver() {
+  noLoop();
+  fill(0);
+  textAlign(CENTER, CENTER);
+  textSize(32);
+  text("Tempo esgotado", width / 2, height / 2 - 40);
+  text("Sua pontuação: " + pontuacao, width / 2, height / 2 + 10);
+}
